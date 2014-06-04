@@ -58,25 +58,16 @@ public class SwipeRefreshListViewFooter extends LinearLayout {
         return lp.bottomMargin;
     }
 
-    /**
-     * normal status
-     */
     public void normal() {
         hintView.setVisibility(View.VISIBLE);
         progressBar.setVisibility(View.GONE);
     }
 
-    /**
-     * loading status
-     */
     public void loading() {
         hintView.setVisibility(View.GONE);
         progressBar.setVisibility(View.VISIBLE);
     }
 
-    /**
-     * hide footer when disable pull load more
-     */
     public void hide() {
         LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) contentView
                 .getLayoutParams();
@@ -84,9 +75,6 @@ public class SwipeRefreshListViewFooter extends LinearLayout {
         contentView.setLayoutParams(lp);
     }
 
-    /**
-     * show footer
-     */
     public void show() {
         LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) contentView
                 .getLayoutParams();

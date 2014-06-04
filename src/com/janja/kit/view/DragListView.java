@@ -26,23 +26,12 @@ public class DragListView extends ListView {
     private ImageView dragView;
     private WindowManager windowManager;
     private WindowManager.LayoutParams windowParams;
-    /**
-     * At which position is the item currently being dragged. Note that this
-     * takes in to account header items.
-     */
     private int dragPos;
-    /**
-     * At which position was the item being dragged originally
-     */
     private int srcDragPos;
-    private int dragPointX; // at what x offset inside the item did the user
-                            // grab it
-    private int dragPointY; // at what y offset inside the item did the user
-                            // grab it
-    private int xOffset; // the difference between screen coordinates and
-                         // coordinates in this view
-    private int yOffset; // the difference between screen coordinates and
-                         // coordinates in this view
+    private int dragPointX;
+    private int dragPointY;
+    private int xOffset;
+    private int yOffset;
     private DragListener dragListener;
     private DropListener dropListener;
     private RemoveListener removeListener;
@@ -88,15 +77,11 @@ public class DragListView extends ListView {
                                         Rect r = tempRect;
                                         dragView.getDrawingRect(r);
                                         if (e2.getX() > r.right * 2 / 3) {
-                                            // fast fling right with release
-                                            // near the right edge of the screen
                                             stopDragging();
                                             removeListener.remove(srcDragPos);
                                             unExpandViews(true);
                                         }
                                     }
-                                    // flinging while dragging should have no
-                                    // effect
                                     return true;
                                 }
                                 return false;
@@ -119,14 +104,9 @@ public class DragListView extends ListView {
                     dragPointY = y - item.getTop();
                     xOffset = ((int) ev.getRawX()) - x;
                     yOffset = ((int) ev.getRawY()) - y;
-                    // The left side of the item is the grabber for dragging the
-                    // item
+
                     if (x < dragWidth) {
                         item.setDrawingCacheEnabled(true);
-                        // Create a copy of the drawing cache so that it does
-                        // not get recycled
-                        // by the framework when the list tries to clean up
-                        // memory
                         Bitmap bitmap = Bitmap.createBitmap(item
                                 .getDrawingCache());
                         startDragging(bitmap, x, y);
@@ -144,15 +124,9 @@ public class DragListView extends ListView {
         return super.onInterceptTouchEvent(ev);
     }
 
-    /*
-     * pointToPosition() doesn't consider invisible views, but we need to, so
-     * implement a slightly different version.
-     */
     private int myPointToPosition(int x, int y) {
 
         if (y < 0) {
-            // when dragging off the top of the screen, calculate position
-            // by going back from a visible item
             int pos = myPointToPosition(x, y + itemHeightNormal);
             if (pos > 0) {
                 return pos - 1;
@@ -179,8 +153,6 @@ public class DragListView extends ListView {
                 pos += 1;
             }
         } else if (adjustedy < 0) {
-            // this shouldn't happen anymore now that myPointToPosition deals
-            // with this situation
             pos = 0;
         }
         return pos;
@@ -195,32 +167,22 @@ public class DragListView extends ListView {
         }
     }
 
-    /*
-     * Restore size and visibility for all listitems
-     */
     private void unExpandViews(boolean deletion) {
         for (int i = 0;; i++) {
             View v = getChildAt(i);
             if (v == null) {
                 if (deletion) {
-                    // HACK force update of mItemCount
                     int position = getFirstVisiblePosition();
                     int y = getChildAt(0).getTop();
                     setAdapter(getAdapter());
                     setSelectionFromTop(position, y);
-                    // end hack
                 }
                 try {
-                    layoutChildren(); // force children to be recreated where
-                                      // needed
+                    layoutChildren();
                     v = getChildAt(i);
                 } catch (IllegalStateException ex) {
-                    // layoutChildren throws this sometimes, presumably because
-                    // we're
-                    // in the process of being torn down but are still getting
-                    // touch
-                    // events
                 }
+
                 if (v == null) {
                     return;
                 }
@@ -232,15 +194,6 @@ public class DragListView extends ListView {
         }
     }
 
-    /*
-     * Adjust visibility and size to make it appear as though an item is being
-     * dragged around and other items are making room for it: If dropping the
-     * item would result in it still being in the same place, then make the
-     * dragged listitem's size normal, but make the item invisible. Otherwise,
-     * if the dragged listitem is still on screen, make it as small as possible
-     * and expand the item below the insert point. If the dragged item is not on
-     * screen, only expand the item below the current insertpoint.
-     */
     private void doExpansion() {
         int childnum = dragPos - getFirstVisiblePosition();
         if (dragPos > srcDragPos) {
@@ -258,24 +211,16 @@ public class DragListView extends ListView {
             int height = itemHeightNormal;
             int visibility = View.VISIBLE;
             if (dragPos < numheaders && i == numheaders) {
-                // dragging on top of the header item, so adjust the item below
-                // instead
                 if (vv.equals(first)) {
                     visibility = View.INVISIBLE;
                 } else {
                     height = itemHeightExpanded;
                 }
             } else if (vv.equals(first)) {
-                // processing the item that is being dragged
                 if (dragPos == srcDragPos
                         || getPositionForView(vv) == getCount() - 1) {
-                    // hovering over the original location
                     visibility = View.INVISIBLE;
                 } else {
-                    // not hovering over it
-                    // Ideally the item would be completely gone, but neither
-                    // setting its size to 0 nor settings visibility to GONE
-                    // has the desired effect.
                     height = 1;
                 }
             } else if (i == childnum) {
@@ -335,22 +280,15 @@ public class DragListView extends ListView {
                         int speed = 0;
                         adjustScrollBounds(y);
                         if (y > lowerBound) {
-                            // scroll the list up a bit
                             if (getLastVisiblePosition() < getCount() - 1) {
                                 speed = y > (height + lowerBound) / 2 ? 16 : 4;
                             } else {
                                 speed = 1;
                             }
                         } else if (y < upperBound) {
-                            // scroll the list down a bit
                             speed = y < upperBound / 2 ? -16 : -4;
                             if (getFirstVisiblePosition() == 0
                                     && getChildAt(0).getTop() >= getPaddingTop()) {
-                                // if we're already at the top, don't try to
-                                // scroll, because
-                                // it causes the framework to do some extra
-                                // drawing that messes
-                                // up our animation
                                 speed = 0;
                             }
                         }
@@ -370,7 +308,6 @@ public class DragListView extends ListView {
 
         windowParams = new WindowManager.LayoutParams();
         windowParams.gravity = Gravity.TOP;
-        // mWindowParams.x = x - mDragPointX + mXOffset;
         windowParams.x = 0;
         windowParams.y = y - dragPointY + yOffset;
 
@@ -386,9 +323,6 @@ public class DragListView extends ListView {
 
         Context context = getContext();
         ImageView v = new ImageView(context);
-        // int backGroundColor =
-        // context.getResources().getColor(R.color.dragndrop_background);
-        // v.setBackgroundColor(backGroundColor);
 
         v.setBackgroundResource(R.drawable.drag_listview_item_press);
         v.setPadding(0, 0, 0, 0);

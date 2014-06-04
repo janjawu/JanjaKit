@@ -15,8 +15,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.animation.LinearInterpolator;
 
 public class EliminationHelper {
-    static final String TAG = "EliminationHelper";
-    private static final boolean SLOW_ANIMATIONS = false; // DEBUG;
+    private static final boolean SLOW_ANIMATIONS = false;
     private static final boolean CONSTRAIN_SWIPE = true;
     private static final boolean FADE_OUT_DURING_SWIPE = true;
     private static final boolean DISMISS_IF_SWIPED_FAR_ENOUGH = true;
@@ -26,16 +25,14 @@ public class EliminationHelper {
 
     private static LinearInterpolator sLinearInterpolator = new LinearInterpolator();
 
-    private float SWIPE_ESCAPE_VELOCITY = 100f; // dp/sec
-    private int DEFAULT_ESCAPE_ANIMATION_DURATION = 200; // ms
-    private int MAX_ESCAPE_ANIMATION_DURATION = 400; // ms
-    private int MAX_DISMISS_VELOCITY = 2000; // dp/sec
-    private static final int SNAP_ANIM_LEN = SLOW_ANIMATIONS ? 1000 : 150; // ms
+    private float SWIPE_ESCAPE_VELOCITY = 100f;
+    private int DEFAULT_ESCAPE_ANIMATION_DURATION = 200;
+    private int MAX_ESCAPE_ANIMATION_DURATION = 400;
+    private int MAX_DISMISS_VELOCITY = 2000;
 
-    public static float ALPHA_FADE_START = 0f; // fraction of thumbnail width
-                                               // where fade starts
-    static final float ALPHA_FADE_END = 0.5f; // fraction of thumbnail width
-                                              // beyond which alpha->0
+    private int SNAP_ANIM_LEN = SLOW_ANIMATIONS ? 1000 : 150;
+    private float ALPHA_FADE_START = 0f;
+    private float ALPHA_FADE_END = 0.5f;
     private float minAlpha = 0f;
 
     private float pagingTouchSlop;
@@ -66,8 +63,7 @@ public class EliminationHelper {
         this.pagingTouchSlop = pagingTouchSlop;
 
         handler = new Handler();
-        longPressTimeout = (long) (ViewConfiguration.getLongPressTimeout() * 1.5f); // extra
-                                                                                    // long-press!
+        longPressTimeout = (long) (ViewConfiguration.getLongPressTimeout() * 1.5f);
     }
 
     public void recycle() {
@@ -151,15 +147,11 @@ public class EliminationHelper {
         invalidateGlobalRegion(animView);
     }
 
-    // invalidate the view's own bounds all the way up the view hierarchy
     public static void invalidateGlobalRegion(View view) {
         invalidateGlobalRegion(view, new RectF(view.getLeft(), view.getTop(),
                 view.getRight(), view.getBottom()));
     }
 
-    // invalidate a rectangle relative to the view's coordinate system all the
-    // way up the view
-    // hierarchy
     public static void invalidateGlobalRegion(View view, RectF childBounds) {
         while (view.getParent() != null && view.getParent() instanceof View) {
             view = (View) view.getParent();
@@ -242,21 +234,14 @@ public class EliminationHelper {
         return dragging;
     }
 
-    /**
-     * @param view
-     *            The view to be dismissed
-     * @param velocity
-     *            The desired pixels/second speed at which the view should move
-     */
     public void dismissChild(final View view, float velocity) {
         final View animView = callback.getChildContentView(view);
         final boolean canAnimViewBeDismissed = callback
                 .canChildBeDismissed(view);
         float newPos;
 
-        if (velocity < 0 || (velocity == 0 && getTranslation(animView) < 0)
-        // if we use the Menu to dismiss an item in landscape, animate
-        // up
+        if (velocity < 0
+                || (velocity == 0 && getTranslation(animView) < 0)
                 || (velocity == 0 && getTranslation(animView) == 0 && swipeDirection == Y)) {
             newPos = -getSize(animView);
         } else {
@@ -316,8 +301,6 @@ public class EliminationHelper {
         }
 
         if (!dragging) {
-            // We are not doing anything, make sure the long press callback
-            // is not still ticking like a bomb waiting to go off.
             removeLongPressCallback();
             return false;
         }
@@ -329,9 +312,6 @@ public class EliminationHelper {
             case MotionEvent.ACTION_MOVE:
                 if (currView != null) {
                     float delta = getPos(ev) - initialTouchPos;
-                    // don't let items that can't be dismissed be dragged more
-                    // than
-                    // maxScrollDistance
                     if (CONSTRAIN_SWIPE
                             && !callback.canChildBeDismissed(currView)) {
                         float size = getSize(currAnimView);
@@ -360,7 +340,6 @@ public class EliminationHelper {
                     float velocity = getVelocity(velocityTracker);
                     float perpendicularVelocity = getPerpendicularVelocity(velocityTracker);
 
-                    // Decide whether to dismiss the current view
                     boolean childSwipedFarEnough = DISMISS_IF_SWIPED_FAR_ENOUGH
                             && Math.abs(getTranslation(currAnimView)) > 0.4 * getSize(currAnimView);
                     boolean childSwipedFastEnough = (Math.abs(velocity) > escapeVelocity)
@@ -373,11 +352,9 @@ public class EliminationHelper {
                             && (childSwipedFastEnough || childSwipedFarEnough);
 
                     if (dismissChild) {
-                        // flingadingy
                         dismissChild(currView, childSwipedFastEnough ? velocity
                                 : 0f);
                     } else {
-                        // snappity
                         callback.onDragCancelled(currView);
                         snapChild(currView, velocity);
                     }

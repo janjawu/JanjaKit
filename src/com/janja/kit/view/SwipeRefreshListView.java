@@ -18,53 +18,31 @@ import android.widget.TextView;
 
 public class SwipeRefreshListView extends ListView implements OnScrollListener {
 
-    private float lastY = -1; // save event y
-    private Scroller scroller; // used for scroll back
-    private OnScrollListener scrollListener; // user's scroll listener
+    private final static int SCROLLBACK_HEADER = 0;
+    private final static int SCROLLBACK_FOOTER = 1;
+    private final static int SCROLL_DURATION = 400;
+    private final static int PULL_LOAD_MORE_DELTA = 50;
+    private final static int AUTO_LOAD_MORE_LEAST_COUNT = 10;
+    private final static float OFFSET_RADIO = 1.8f;
 
-    // the interface to trigger refresh and load more.
+    private float lastY = -1;
+    private Scroller scroller;
+    private OnScrollListener scrollListener;
     private SwipeRefreshListViewListener swipeRefreshListener;
-
-    // -- header view
     private SwipeRefreshListViewHeader headerView;
-    // header view content, use it to calculate the Header's height. And hide it
-    // when disable pull refresh.
     private RelativeLayout headerViewContent;
     private TextView headerTimeView;
-    private int headerViewHeight; // header view's height
+    private int headerViewHeight;
     private boolean enablePullRefresh = true;
-    private boolean pullRefreshing; // is refreashing.
-
-    // -- footer view
+    private boolean pullRefreshing;
     private SwipeRefreshListViewFooter mFooterView;
     private boolean enablePullLoad = true;
     private boolean enableAutoLoad = true;
     private boolean pullLoading;
     private boolean isFooterReady;
-
-    // total list items, used to detect is at the bottom of listview.
     private int totalItemCount;
-
-    // there are header and footer view in list.
     private int defaultItemCount = 2;
-
-    // for mScroller, scroll back from header or footer.
     private int scrollBack;
-    private final static int SCROLLBACK_HEADER = 0;
-    private final static int SCROLLBACK_FOOTER = 1;
-
-    private final static int SCROLL_DURATION = 400; // scroll back duration
-    private final static int PULL_LOAD_MORE_DELTA = 50; // when pull up >= 50px
-                                                        // at bottom, trigger
-                                                        // load more.
-    private final static int AUTO_LOAD_MORE_LEAST_COUNT = 10; // when list count
-                                                              // <= 10
-                                                              // at bottom,
-                                                              // trigger
-                                                              // load more
-                                                              // Automatically.
-    private final static float OFFSET_RADIO = 1.8f; // support iOS like pull
-                                                    // feature.
 
     public SwipeRefreshListView(Context context) {
         super(context);
@@ -84,12 +62,8 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
 
     private void initWithContext(Context context) {
         scroller = new Scroller(context, new DecelerateInterpolator());
-        // SwipeRefreshListView need the scroll event, and it will dispatch the
-        // event to
-        // user's listener (as a proxy).
         super.setOnScrollListener(this);
 
-        // init header view
         headerView = new SwipeRefreshListViewHeader(context);
         headerViewContent = (RelativeLayout) headerView
                 .findViewById(R.id.swipe_refresh_listview_header_content);
@@ -97,11 +71,9 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
                 .findViewById(R.id.swipe_refresh_listview_header_time);
         addHeaderView(headerView);
 
-        // init footer view
         mFooterView = new SwipeRefreshListViewFooter(context);
         setPullLoadEnable(enablePullLoad);
 
-        // init header height
         headerView.getViewTreeObserver().addOnGlobalLayoutListener(
                 new OnGlobalLayoutListener() {
                     @Override
@@ -115,8 +87,6 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
 
     @Override
     public void setAdapter(ListAdapter adapter) {
-        // make sure SwipeRefreshListViewFooter is the last footer view, and
-        // only add once.
         if (isFooterReady == false) {
             isFooterReady = true;
             addFooterView(mFooterView);
@@ -124,25 +94,15 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
         super.setAdapter(adapter);
     }
 
-    /**
-     * enable or disable pull down refresh feature.
-     * 
-     * @param enable
-     */
     public void setPullRefreshEnable(boolean enable) {
         enablePullRefresh = enable;
-        if (!enablePullRefresh) { // disable, hide the content
+        if (!enablePullRefresh) {
             headerViewContent.setVisibility(View.INVISIBLE);
         } else {
             headerViewContent.setVisibility(View.VISIBLE);
         }
     }
 
-    /**
-     * enable or disable pull up load more feature.
-     * 
-     * @param enable
-     */
     public void setPullLoadEnable(boolean enable) {
         enablePullLoad = enable;
         if (!enablePullLoad) {
@@ -152,7 +112,6 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
             pullLoading = false;
             mFooterView.show();
             mFooterView.setState(SwipeRefreshListViewFooter.STATE_NORMAL);
-            // both "pull up" and "click" will invoke load more.
             mFooterView.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -166,9 +125,6 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
         enableAutoLoad = enable;
     }
 
-    /**
-     * stop refresh, reset header view.
-     */
     public void stopRefresh() {
         if (pullRefreshing == true) {
             pullRefreshing = false;
@@ -176,9 +132,6 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
         }
     }
 
-    /**
-     * stop load more, reset footer view.
-     */
     public void stopLoadMore() {
         if (pullLoading == true) {
             pullLoading = false;
@@ -186,11 +139,6 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
         }
     }
 
-    /**
-     * set last refresh time
-     * 
-     * @param time
-     */
     public void setRefreshTime(String time) {
         headerTimeView.setText(time);
     }
@@ -212,29 +160,26 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
                 headerView.setState(SwipeRefreshListViewHeader.STATE_NORMAL);
             }
         }
-        setSelection(0); // scroll to top each time
+        setSelection(0);
     }
 
-    /**
-     * reset header view's height.
-     */
     private void resetHeaderHeight() {
         int height = headerView.getVisiableHeight();
-        if (height == 0) // not visible.
+
+        if (height == 0)
             return;
-        // refreshing and header isn't shown fully. do nothing.
+
         if (pullRefreshing && height <= headerViewHeight) {
             return;
         }
-        int finalHeight = 0; // default: scroll back to dismiss header.
-        // is refreshing, just scroll back to show all the header.
+
+        int finalHeight = 0;
         if (pullRefreshing && height > headerViewHeight) {
             finalHeight = headerViewHeight;
         }
         scrollBack = SCROLLBACK_HEADER;
         scroller.startScroll(0, height, 0, finalHeight - height,
                 SCROLL_DURATION);
-        // trigger computeScroll
         invalidate();
     }
 
@@ -245,16 +190,13 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
             height = maxMargin;
         }
         if (enablePullLoad && !pullLoading) {
-            if (height > PULL_LOAD_MORE_DELTA) { // height enough to invoke load
-                                                 // more.
+            if (height > PULL_LOAD_MORE_DELTA) {
                 mFooterView.setState(SwipeRefreshListViewFooter.STATE_READY);
             } else {
                 mFooterView.setState(SwipeRefreshListViewFooter.STATE_NORMAL);
             }
         }
         mFooterView.setBottomMargin(height);
-
-        // setSelection(mTotalItemCount - 1); // scroll to bottom
     }
 
     private void resetFooterHeight() {
@@ -290,19 +232,16 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
                 lastY = ev.getRawY();
                 if (getFirstVisiblePosition() == 0
                         && (headerView.getVisiableHeight() > 0 || deltaY > 0)) {
-                    // the first item is showing, header has shown or pull down.
                     updateHeaderHeight(deltaY / OFFSET_RADIO);
                     invokeOnScrolling();
                 } else if (getLastVisiblePosition() == totalItemCount - 1
                         && (mFooterView.getBottomMargin() > 0 || deltaY < 0)) {
-                    // last item, already pulled up or want to pull up.
                     updateFooterHeight(-deltaY / OFFSET_RADIO);
                 }
                 break;
             default:
-                lastY = -1; // reset
+                lastY = -1;
                 if (getFirstVisiblePosition() == 0) {
-                    // invoke refresh
                     if (enablePullRefresh
                             && headerView.getVisiableHeight() > headerViewHeight) {
                         pullRefreshing = true;
@@ -371,7 +310,6 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
             }
         }
 
-        // send to user's listener
         this.totalItemCount = totalItemCount;
         if (scrollListener != null) {
             scrollListener.onScroll(view, firstVisibleItem, visibleItemCount,
@@ -383,17 +321,10 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
         swipeRefreshListener = l;
     }
 
-    /**
-     * you can listen ListView.OnScrollListener or this one. it will invoke
-     * onSwipeRefreshScrolling when header/footer scroll back.
-     */
     public interface OnSwipeRefreshScrollListener extends OnScrollListener {
         public void onSwipeRefreshScrolling(View view);
     }
 
-    /**
-     * implements this interface to get refresh/load more event.
-     */
     public interface SwipeRefreshListViewListener {
         public void onRefresh();
 
