@@ -35,7 +35,7 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
     private int headerViewHeight;
     private boolean enablePullRefresh = true;
     private boolean pullRefreshing;
-    private SwipeRefreshListViewFooter mFooterView;
+    private SwipeRefreshListViewFooter footerView;
     private boolean enablePullLoad = true;
     private boolean enableAutoLoad = true;
     private boolean pullLoading;
@@ -71,7 +71,7 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
                 .findViewById(R.id.swipe_refresh_listview_header_time);
         addHeaderView(headerView);
 
-        mFooterView = new SwipeRefreshListViewFooter(context);
+        footerView = new SwipeRefreshListViewFooter(context);
         setPullLoadEnable(enablePullLoad);
 
         headerView.getViewTreeObserver().addOnGlobalLayoutListener(
@@ -89,7 +89,7 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
     public void setAdapter(ListAdapter adapter) {
         if (isFooterReady == false) {
             isFooterReady = true;
-            addFooterView(mFooterView);
+            addFooterView(footerView);
         }
         super.setAdapter(adapter);
     }
@@ -106,13 +106,13 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
     public void setPullLoadEnable(boolean enable) {
         enablePullLoad = enable;
         if (!enablePullLoad) {
-            mFooterView.hide();
-            mFooterView.setOnClickListener(null);
+            footerView.hide();
+            footerView.setOnClickListener(null);
         } else {
             pullLoading = false;
-            mFooterView.show();
-            mFooterView.setState(SwipeRefreshListViewFooter.STATE_NORMAL);
-            mFooterView.setOnClickListener(new OnClickListener() {
+            footerView.show();
+            footerView.setState(SwipeRefreshListViewFooter.STATE_NORMAL);
+            footerView.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     startLoadMore();
@@ -135,7 +135,7 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
     public void stopLoadMore() {
         if (pullLoading == true) {
             pullLoading = false;
-            mFooterView.setState(SwipeRefreshListViewFooter.STATE_NORMAL);
+            footerView.setState(SwipeRefreshListViewFooter.STATE_NORMAL);
         }
     }
 
@@ -185,22 +185,22 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
 
     private void updateFooterHeight(float delta) {
         int maxMargin = PULL_LOAD_MORE_DELTA + 5;
-        int height = mFooterView.getBottomMargin() + (int) delta;
+        int height = footerView.getBottomMargin() + (int) delta;
         if (height >= maxMargin) {
             height = maxMargin;
         }
         if (enablePullLoad && !pullLoading) {
             if (height > PULL_LOAD_MORE_DELTA) {
-                mFooterView.setState(SwipeRefreshListViewFooter.STATE_READY);
+                footerView.setState(SwipeRefreshListViewFooter.STATE_READY);
             } else {
-                mFooterView.setState(SwipeRefreshListViewFooter.STATE_NORMAL);
+                footerView.setState(SwipeRefreshListViewFooter.STATE_NORMAL);
             }
         }
-        mFooterView.setBottomMargin(height);
+        footerView.setBottomMargin(height);
     }
 
     private void resetFooterHeight() {
-        int bottomMargin = mFooterView.getBottomMargin();
+        int bottomMargin = footerView.getBottomMargin();
         if (bottomMargin > 0) {
             scrollBack = SCROLLBACK_FOOTER;
             scroller.startScroll(0, bottomMargin, 0, -bottomMargin,
@@ -211,7 +211,7 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
 
     private void startLoadMore() {
         pullLoading = true;
-        mFooterView.setState(SwipeRefreshListViewFooter.STATE_LOADING);
+        footerView.setState(SwipeRefreshListViewFooter.STATE_LOADING);
         if (swipeRefreshListener != null) {
             swipeRefreshListener.onLoadMore();
         }
@@ -235,7 +235,7 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
                     updateHeaderHeight(deltaY / OFFSET_RADIO);
                     invokeOnScrolling();
                 } else if (getLastVisiblePosition() == totalItemCount - 1
-                        && (mFooterView.getBottomMargin() > 0 || deltaY < 0)) {
+                        && (footerView.getBottomMargin() > 0 || deltaY < 0)) {
                     updateFooterHeight(-deltaY / OFFSET_RADIO);
                 }
                 break;
@@ -259,7 +259,7 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
                             startLoadMore();
                         } else {
                             if (getLastVisiblePosition() == totalItemCount - 1
-                                    && mFooterView.getBottomMargin() > PULL_LOAD_MORE_DELTA) {
+                                    && footerView.getBottomMargin() > PULL_LOAD_MORE_DELTA) {
                                 startLoadMore();
                             }
                         }
@@ -277,7 +277,7 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
             if (scrollBack == SCROLLBACK_HEADER) {
                 headerView.setVisiableHeight(scroller.getCurrY());
             } else {
-                mFooterView.setBottomMargin(scroller.getCurrY());
+                footerView.setBottomMargin(scroller.getCurrY());
             }
             postInvalidate();
             invokeOnScrolling();
@@ -315,6 +315,14 @@ public class SwipeRefreshListView extends ListView implements OnScrollListener {
             scrollListener.onScroll(view, firstVisibleItem, visibleItemCount,
                     totalItemCount);
         }
+    }
+
+    public SwipeRefreshListViewHeader getHeaderView() {
+        return headerView;
+    }
+
+    public SwipeRefreshListViewFooter getFooterView() {
+        return footerView;
     }
 
     public void setSwipeRefreshListViewListener(SwipeRefreshListViewListener l) {
